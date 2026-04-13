@@ -68,14 +68,16 @@ QUERY_REWRITE_PROMPT = """\
 CYPHER_GENERATION_PROMPT = """\
 你是一个 Neo4j Cypher 查询生成专家。根据用户问题和提取的实体，生成 Cypher 查询。
 
-知识图谱 Schema:
-- 节点标签: Person, Organization, Technology, Product, Concept, Location
-- 关系类型: belongs_to, works_at, located_in, developed_by, related_to, part_of, uses, depends_on
-- 节点属性: name, type, description, created_at, version
+知识图谱 Schema（注意：所有节点都是 :Entity 标签，不要用其他标签！）:
+- 节点标签: :Entity（所有节点统一标签，不要使用 Person/Product/Technology 等）
+- 关系类型: RELATED_TO, USES, BELONGS_TO, DEVELOPS, LOCATED_IN 等（关系类型全部大写下划线）
+- 节点属性: name (string), type (string), description (string), source (string)
 
 生成 1-2 条 Cypher 查询，返回 JSON: {"queries": ["MATCH ...", "MATCH ..."]}
 只返回 JSON，不要其他文字。
-"""
+
+示例（查 SR8000 的邻居）:
+{"queries": ["MATCH (e:Entity {name: 'SR8000'})-[r]-(neighbor) RETURN e.name AS source, type(r) AS relation, neighbor.name AS target, neighbor.type AS target_type LIMIT 20"]}"""
 
 ANSWER_PROMPT = """\
 你是一个专业的企业知识问答助手。根据检索到的上下文信息回答用户问题。
@@ -191,8 +193,93 @@ class QAAgent:
         if not self.knowledge_graph:
             return []
 
+        raw_entities = rewritten.get("entities", [])
+        resolved_entities = await self._resolve_graph_entities(raw_entities)
+
+        contexts: list[RetrievedContext] = []
+        contexts.extend(await self._retrieve_neighbors_contexts(resolved_entities))
+        contexts.extend(await self._retrieve_generated_cypher(question, resolved_entities or raw_entities))
+        return contexts
+
+    async def _resolve_graph_entities(self, entities: list[str]) -> list[str]:
+        """将改写实体映射到图谱中的实际实体名（优先精确，其次模糊）。"""
+        resolved: list[str] = []
+        seen: set[str] = set()
+
+        def _add(name: str) -> None:
+            if name and name not in seen:
+                seen.add(name)
+                resolved.append(name)
+
+        for entity in entities:
+            name = entity.strip()
+            if not name:
+                continue
+
+            try:
+                exact = await self.knowledge_graph.get_entity(name)
+                if exact:
+                    _add(name)
+            except Exception as e:
+                print(f"[WARN] Graph entity exact match failed: entity={name}, error={e}")
+
+            try:
+                candidates = await self.knowledge_graph.search_entities(name, limit=10)
+                for item in candidates:
+                    candidate_name = item.get("name", "")
+                    if candidate_name and (name in candidate_name or candidate_name in name):
+                        _add(candidate_name)
+            except Exception as e:
+                print(f"[WARN] Graph entity fuzzy match failed: entity={name}, error={e}")
+
+        return resolved
+
+    async def _retrieve_neighbors_contexts(self, entities: list[str], hops: int = 2) -> list[RetrievedContext]:
+        """确定性图谱召回：按实体取邻居，作为图谱检索主链路。"""
+        contexts: list[RetrievedContext] = []
+        for entity_name in entities:
+            try:
+                records = await self.knowledge_graph.get_neighbors(entity_name, hops=hops)
+            except Exception as e:
+                print(f"[WARN] Graph neighbors retrieval failed: entity={entity_name}, error={e}")
+                continue
+
+            for record in records:
+                relation_chain = " -> ".join(record.get("relations", []))
+                content = (
+                    f"{record.get('source', '')} "
+                    f"--[{relation_chain}]--> "
+                    f"{record.get('target', '')} "
+                    f"({record.get('target_type', '')}): "
+                    f"{record.get('target_desc', '')}"
+                )
+                contexts.append(RetrievedContext(
+                    content=content,
+                    source="knowledge_graph",
+                    score=0.82,
+                    retrieval_type="graph",
+                    metadata={"entity": entity_name, "strategy": "neighbors", "hops": hops},
+                ))
+        return contexts
+
+    @staticmethod
+    def _is_schema_aligned_cypher(cypher: str) -> bool:
+        """最小化校验，避免执行明显偏离当前图谱 schema 的查询。"""
+        up = cypher.upper()
+        if "MATCH" not in up:
+            return False
+        if ":ENTITY" not in up:
+            return False
+        # 当前图谱结构是统一 :Entity，不接受其他节点标签。
+        disallowed = [":PERSON", ":ORGANIZATION", ":PRODUCT", ":TECHNOLOGY", ":CONCEPT", ":LOCATION"]
+        if any(tag in up for tag in disallowed):
+            return False
+        return True
+
+    async def _retrieve_generated_cypher(self, question: str, entities: list[str]) -> list[RetrievedContext]:
+        """LLM 生成 Cypher 的补充召回路径。"""
         import json
-        entities = rewritten.get("entities", [])
+
         messages = [
             SystemMessage(content=CYPHER_GENERATION_PROMPT),
             HumanMessage(content=f"问题: {question}\n实体: {entities}"),
@@ -203,11 +290,15 @@ class QAAgent:
             if cleaned.startswith("```"):
                 cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
             cypher_data = json.loads(cleaned)
-        except (json.JSONDecodeError, IndexError):
-            cypher_data = {"queries": []}
+        except (json.JSONDecodeError, IndexError) as ex:
+            print(f"[WARN] Graph retrieve - cypher parsing failed: {ex}, raw: {resp.content[:200]}")
+            return []
 
         contexts: list[RetrievedContext] = []
         for cypher in cypher_data.get("queries", []):
+            if not self._is_schema_aligned_cypher(cypher):
+                print(f"[WARN] Skip schema-mismatched cypher: {cypher}")
+                continue
             try:
                 records = await self.knowledge_graph.execute_cypher(cypher)
                 for record in records:
@@ -216,9 +307,10 @@ class QAAgent:
                         source="knowledge_graph",
                         score=0.8,
                         retrieval_type="graph",
-                        metadata={"cypher": cypher},
+                        metadata={"cypher": cypher, "strategy": "llm_cypher"},
                     ))
-            except Exception:
+            except Exception as e:
+                print(f"[WARN] Graph retrieval cypher failed: cypher={cypher}, error={e}")
                 continue
         return contexts
 
@@ -236,11 +328,32 @@ class QAAgent:
 
         seen: set[str] = set()
         unique: list[RetrievedContext] = []
+        # 图谱邻居结果：按实体分桶，每实体最多 MAX_PER_ENTITY 条，保证多样性
+        MAX_PER_ENTITY = 4
+        entity_bucket: dict[str, list[RetrievedContext]] = {}
         for ctx in contexts:
-            key = ctx.content[:100]
-            if key not in seen:
-                seen.add(key)
-                unique.append(ctx)
+            if ctx.retrieval_type == "graph" and ctx.metadata.get("strategy") == "neighbors":
+                entity = ctx.metadata.get("entity", "")
+                target = ""
+                parts = ctx.content.split("-->", 1)
+                if len(parts) > 1:
+                    target = parts[1].split("(")[0].strip()
+                key = f"graph:{entity}:{target}"
+                if entity not in entity_bucket:
+                    entity_bucket[entity] = []
+                # 内容去重 + 每实体上限
+                if key not in seen and len(entity_bucket[entity]) < MAX_PER_ENTITY:
+                    seen.add(key)
+                    entity_bucket[entity].append(ctx)
+            else:
+                key = ctx.content[:100]
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(ctx)
+
+        # 合并各实体bucket结果
+        for bucket in entity_bucket.values():
+            unique.extend(bucket)
 
         unique.sort(key=lambda c: c.score, reverse=True)
         return unique

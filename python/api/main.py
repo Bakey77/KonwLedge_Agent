@@ -11,6 +11,7 @@ from __future__ import annotations  # 启用类型提示（Python 3.10+）
 
 import os          # 操作系统模块（处理文件路径）
 import shutil      # 文件操作模块（复制文件流）
+import asyncio     # 异步事件循环模块
 from contextlib import asynccontextmanager  # 异步上下文管理器
 from typing import Any
 
@@ -35,6 +36,8 @@ from services.vector_store import VectorStoreService  # 向量数据库服务
 vector_store = VectorStoreService()      # 向量数据库实例（ChromaDB 或 PGVector）
 knowledge_graph = KnowledgeGraphService()  # 知识图谱实例（Neo4j）
 workflows: dict[str, Any] = {}           # 存储三条 LangGraph 工作流（ingest/qa/update）
+update_agent: KnowledgeUpdateAgent | None = None  # 需要一个全局变量来保存update_agent实例，供后续调用start_watching方法使用
+_main_event_loop: asyncio.AbstractEventLoop | None = None  # 保存主事件循环，供 Watchdog 线程使用
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -71,12 +74,24 @@ async def lifespan(app: FastAPI):
         pass  # 忽略初始化失败（可能服务未启动）
 
     # 构建三条 LangGraph 工作流，存入全局字典
-    workflows.update(
-        build_knowledge_graph_workflow(
-            vector_store=vector_store,
-            knowledge_graph=knowledge_graph
-        )
+    global update_agent
+    workflows_dict, update_agent = build_knowledge_graph_workflow(
+        vector_store=vector_store,
+        knowledge_graph=knowledge_graph
     )
+    workflows.update(workflows_dict)
+
+    # 保存主事件循环引用，供 Watchdog 线程使用
+    global _main_event_loop
+    _main_event_loop = asyncio.get_running_loop()
+
+    # 启动 Watchdog 文件监控（使用绝对路径，传入主事件循环）
+    upload_dir_abs = os.path.abspath(settings.upload_dir)
+    print(f"[DEBUG] upload_dir_abs = {upload_dir_abs}")
+    print(f"[DEBUG] update_agent = {update_agent}")
+    print(f"[DEBUG] Calling start_watching...")
+    update_agent.start_watching(upload_dir_abs, _main_event_loop)
+    print(f"[DEBUG] start_watching called successfully")
 
     yield  # 应用运行中...
 

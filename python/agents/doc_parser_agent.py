@@ -81,22 +81,23 @@ class DocParserAgent:
 
     async def parse(self, file_path: str) -> list[DocumentChunk]:
         """解析单个文件，返回文档块列表"""
-        doc_type = self._classify(file_path)
-        doc_id = self._make_doc_id(file_path)
+        normalized_path = os.path.abspath(file_path)
+        doc_type = self._classify(normalized_path)
+        doc_id = self._make_doc_id(normalized_path)
 
         raw_texts: list[str] = []
         if doc_type == DocType.PDF:
-            raw_texts = await self._parse_pdf(file_path)
+            raw_texts = await self._parse_pdf(normalized_path)
         elif doc_type == DocType.IMAGE:
-            raw_texts = await self._parse_image(file_path)
+            raw_texts = await self._parse_image(normalized_path)
         elif doc_type == DocType.TABLE:
-            raw_texts = await self._parse_table(file_path)
+            raw_texts = await self._parse_table(normalized_path)
         elif doc_type in (DocType.TEXT, DocType.MARKDOWN):
-            raw_texts = self._parse_text(file_path)
+            raw_texts = self._parse_text(normalized_path)
         else:
-            raw_texts = self._parse_text(file_path)
+            raw_texts = self._parse_text(normalized_path)
 
-        chunks = self._chunk_texts(raw_texts, doc_id, doc_type, file_path)
+        chunks = self._chunk_texts(raw_texts, doc_id, doc_type, normalized_path)
         return chunks
 
     async def parse_batch(self, file_paths: list[str]) -> list[DocumentChunk]:
@@ -114,7 +115,7 @@ class DocParserAgent:
 
     @staticmethod
     def _make_doc_id(file_path: str) -> str:
-        return hashlib.sha256(file_path.encode()).hexdigest()[:16]
+        return hashlib.sha256(os.path.abspath(file_path).encode()).hexdigest()[:16]
 
     # ── PDF parsing ──────────────────────────────────────────
 

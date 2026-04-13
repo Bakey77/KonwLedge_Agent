@@ -74,7 +74,7 @@ class UpdateState(dict):
 def build_knowledge_graph_workflow(
     vector_store: VectorStoreService | None = None, #传入一个VectorStoreService实例，或者None表示不使用向量存储 默认返回值是None
     knowledge_graph: KnowledgeGraphService | None = None,
-) -> dict[str, Any]:
+) -> tuple[dict[str,Any],KnowledgeUpdateAgent]: #dict[str, Any]: 让调用者可以同时拿到workflow和update_agent，方便后续调用update_agent.process_batch()进行增量更新
     """
     构建三条编排流水线，返回 {"ingest": graph, "qa": graph, "update": graph}
     """
@@ -88,11 +88,12 @@ def build_knowledge_graph_workflow(
         knowledge_graph=knowledge_graph,
     )
 
-    return {
+    workflows = {
         "ingest": _build_ingest_graph(doc_parser, extractor, vector_store, knowledge_graph),
         "qa": _build_qa_graph(qa_agent),
         "update": _build_update_graph(update_agent),
     }
+    return workflows, update_agent
 
 
 # ── Ingest Pipeline ─────────────────────────────────────────

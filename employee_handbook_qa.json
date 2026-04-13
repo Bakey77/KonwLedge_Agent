@@ -1,0 +1,210 @@
+[
+  {
+    "query_id": "q_1",
+    "question": "我试用期第10天想离职，提前3天通知，那第13天我真的能离职吗？工资怎么结算？",
+    "ground_truth": "可以离职。试用期内通知离职需提前3天，按照试用期应得工资结算（试用期工资按财务规定）。但具体结算细节需确认：是否有实际工作天数比例计算。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-4", "1a5b1c06c0131ef0#chunk-5"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_2",
+    "question": "我病假需要医证，但医证上写着'建议休息30天'，而我只能休15天，剩下的假期怎么处理？工资怎么算？",
+    "ground_truth": "根据病假规则，病假必须提供医证。如果医证建议30天但只休了15天，超出部分不能作为病假处理。剩余未休假期作为事假处理（按事假工资扣除，每年仅10天事假额度）。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-11", "1a5b1c06c0131ef0#chunk-12"],
+    "question_type": "边界型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_3",
+    "question": "我当月迟到了3次，然后第4次又迟到了15分钟，这怎么算罚款和工资扣除？",
+    "ground_truth": "当月迟到累计3次后，从第4次起每次按旷工半日论处。迟到15分钟视为迟到(需在10分钟后到达)。第4次15分钟迟到扣0.5天工资。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-9", "1a5b1c06c0131ef0#chunk-10"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_4",
+    "question": "我加班选择了补休，但因为工作忙没在当月补完。公司说不能跨月累计，那我的加班时间就白费了吗？",
+    "ground_truth": "不会白费，但确实有风险。加班调休必须在当月内完成，超出当月未补休的部分不能跨月累计。建议与HR沟通，看是否可以申请补休期限延期或按加班工资发放。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-12", "1a5b1c06c0131ef0#chunk-13", "1a5b1c06c0131ef0#chunk-14"],
+    "question_type": "边界型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_5",
+    "question": "我是主管级人员，要离职需提前60天通知，但如果我已经找到了新工作呢？是否一定要等满60天才能离职？",
+    "ground_truth": "根据规定，主管级别离职必须提前60天通知，这是强制性要求。即使找到新工作也需要遵守。提前离开会违反离职程序规定。可与公司协商是否可能缩短周期。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-5", "1a5b1c06c0131ef0#chunk-6"],
+    "question_type": "边界型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_6",
+    "question": "我连续旷工3天，自动离职了。但我其实不想离职，是否还有补救机会？",
+    "ground_truth": "根据规定，连续旷工3次或不打招呼随意脱离工作岗位视为自动离职。自动离职者，公司不结算任何工资及开具离职证明。建议立即与HR最高管理层沟通解释，但重新入职概率较低。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-10", "1a5b1c06c0131ef0#chunk-18"],
+    "question_type": "边界型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_7",
+    "question": "我因为生病请了2天假，医生没给我开病假证，说是小感冒，那这2天算不算病假？",
+    "ground_truth": "不算病假。根据规定，病假2天以上需提供医院诊断及休假证明。无医证的2天假期视为事假处理，按事假工资扣除。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-11", "1a5b1c06c0131ef0#chunk-12"],
+    "question_type": "边界型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_8",
+    "question": "春节期间，公司突然通知我周末来加班。这算是'统一调整'不计加班？还是算真正的加班工资？",
+    "ground_truth": "需要区分：如果是公司统一安排的周末上班调整，属于'统一调整'，不属加班。但如果是法定假日（春节假期内）主动加班且获批，则可视作加班。建议看钉钉加班申请的批准结果。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-13"],
+    "question_type": "边界型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_9",
+    "question": "我旷工了1天，工资被扣了3天。那如果我一个月旷工了4天，是不是要扣12天工资？如果我月工资只有20天怎么办？",
+    "ground_truth": "旷工1天扣3天工资。一个月旷工3天属于自动离职，不再计算工资。超出3天的旷工不会再发生，因为已自动离职。如果累计旷工超5天年内，除扣第4天所在月全部工资外，会被辞退。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-10"],
+    "question_type": "边界型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_10",
+    "question": "我被派出差1周，期间还需要自己打卡吗？出差路上的时间算工资吗？",
+    "ground_truth": "无需自己操作。根据规则，因工作外出频繁需钉钉发起申请，返岗后到HR报到。HR会根据钉钉出勤数据统计，出差期间视为正常出勤。路上时间作为出差工作时间，正常支付工资。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-13", "1a5b1c06c0131ef0#chunk-14"],
+    "question_type": "推理型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_11",
+    "question": "试用期间我请了4天病假（有医证），现在要转正了。公司说'可以调整试用期'，是延长还是缩短？延长多久？",
+    "ground_truth": "规定说'可视情况给予调整'，但未明确是延长还是缩短。如果病假超过3天，通常可能延长试用期。具体时长需与HR确认，但不能无限期调整。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-14"],
+    "question_type": "边界型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_12",
+    "question": "我工作年限1.5年，病假了8天（有医证）。根据工资扣除表，我的病假工资系数应该是多少？",
+    "ground_truth": "根据病假工资阶梯表，工作年限1.5年属于'1年<X≤3年'区间，8天病假属于'Y≤10天'区间，系数为50%。即你的工资按50%支付。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-11", "1a5b1c06c0131ef0#chunk-12"],
+    "question_type": "事实型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_13",
+    "question": "公司给我的劳动合同里写着'我有权根据经营需要调整你的工作岗位和薪酬'，这是强制的吗？我能拒绝吗？",
+    "ground_truth": "这是标准合同条款，但并非强制执行。如果涉及实际明显不合理的降薪或岗位调整，可申请变更合同。任何一方要求变更需书面通知，被通知方10日内可表达反对意见。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-15", "1a5b1c06c0131ef0#chunk-20"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_14",
+    "question": "我和公司签了竞业限制协议，那离职后具体多长时间内不能到竞争对手工作？",
+    "ground_truth": "手册中仅提到'将根据岗位重要程度及性质与员工签订竞业限制协议'，但未明确具体限制时长。这需要查看你签订的具体协议条款。建议保留合同备份查看。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-15"],
+    "question_type": "事实型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_15",
+    "question": "我早退15分钟和早退30分钟，处理方式有什么不同吗？",
+    "ground_truth": "有区别。15-30分钟早退按事假半天论处。30分钟以上早退按旷工半日论处。两者工资扣除不同。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-9", "1a5b1c06c0131ef0#chunk-10"],
+    "question_type": "对比型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_16",
+    "question": "我借用的公司物品（比如笔记本电脑）在出差过程中丢失了，我需要赔偿吗？",
+    "ground_truth": "根据交接规定，离职员工如未办完交接手续，公司物品遗失全额从薪资扣还。但在职员工不在此规定内。建议立即向HR或部门主管报告，看是否可以走保险理赔或公司补偿。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-19"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_17",
+    "question": "我是经理级人员要离职，需要办理'离职审计'。这个审计会查什么？对我的离职工资有影响吗？",
+    "ground_truth": "规定提到'中层以上管理者或重要岗位人员离职，公司安排离职审计'，但未具体说明审计内容。通常涉及账目、资金、项目交接等。可能影响是否能顺利结算工资。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-18", "1a5b1c06c0131ef0#chunk-19"],
+    "question_type": "边界型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_18",
+    "question": "合同期满了，公司在一个月前问我是否续签，我没有明确表态。现在合同到期了，我是被迫离职还是自动延续？",
+    "ground_truth": "不会自动延续。根据规定，员工 received 续签征询后3天内未做任何表示，视为不愿继续签订合同，公司在期满时终止劳动关系。无须继续支付工资，但应获得正式离职证明。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-15", "1a5b1c06c0131ef0#chunk-16"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_19",
+    "question": "我旷工半日和1个完整工作日，工资扣除比例一样吗？",
+    "ground_truth": "不一样。旷工半日是日工资的一半。旷工1个完整工作日要扣3天工资。所以完整工作日的处罚更重。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-9", "1a5b1c06c0131ef0#chunk-10"],
+    "question_type": "对比型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_20",
+    "question": "我在试用期被证明不符合录用条件，公司要解雇我。我能得到任何补偿或遣散费吗？",
+    "ground_truth": "不能。规定明确说'评定不符合录用条件的，可解除劳动合同，并不予支付经济补偿金'。试用期解雇无补偿。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-4", "1a5b1c06c0131ef0#chunk-14", "1a5b1c06c0131ef0#chunk-15", "1a5b1c06c0131ef0#chunk-16", "1a5b1c06c0131ef0#chunk-17"],
+    "question_type": "推理型",
+    "difficulty": "简单"
+  },
+  {
+    "query_id": "q_21",
+    "question": "我每年有10天事假额度，那这10天是日历天还是工作天？公司放假期间请事假会计入吗？",
+    "ground_truth": "根据规定，事假按'实际请假天数扣除工资'，结合'考勤按当月工作日计算'，事假应计为工作天。公司放假期间一般不计事假（属于休息日）。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-9", "1a5b1c06c0131ef0#chunk-11"],
+    "question_type": "边界型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_22",
+    "question": "我落选了晋升机会，部门经理说这是因为'试用期有过迟到记录'。这合理吗？",
+    "ground_truth": "手册中未明确规定迟到记录是否影响晋升。但迟到属违纪现象，记录在案。建议查询岗位晋升评审标准，或与HR了解是否存在'黑名单'制度。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-9", "1a5b1c06c0131ef0#chunk-10"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_23",
+    "question": "我被劝退（协商辞职），公司应该给我什么样的补偿？",
+    "ground_truth": "规定说'劝退员工根据《劳动法》规定给予补偿'，但手册中未列出具体补偿金额或方案。建议查阅《劳动法》或咨询HR获得准确数据。通常为经济补偿金=工作年限×月平均工资。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-8", "1a5b1c06c0131ef0#chunk-16", "1a5b1c06c0131ef0#chunk-17"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  },
+  {
+    "query_id": "q_24",
+    "question": "我在工作中因公受伤需要治疗，是按病假处理还是有工伤假？",
+    "ground_truth": "手册中未提及工伤假。因公受伤属于工伤范畴，应由公司工伤保险承担，不按病假处理。建议立即报警并通知HR，启动工伤认定流程。",
+    "relevant_chunks": [],
+    "question_type": "推理型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_25",
+    "question": "我是个体性质的员工(按小时计酬)，旷工和请假的规则一样吗？",
+    "ground_truth": "手册中针对'按月结算'的员工制定。按小时计酬员工的考勤规则可能不同。建议与HR确认是否有单独的考勤制度。",
+    "relevant_chunks": [],
+    "question_type": "边界型",
+    "difficulty": "困难"
+  },
+  {
+    "query_id": "q_26",
+    "question": "我的直属上司告诉我加班可以不钉钉申请，直接到他这里报备就算数。这样的加班能被公司承认吗？",
+    "ground_truth": "不能。规定明确说'加班应事先钉钉发起加班申请，按权限审批后方可计算加班'。私下报备需钉钉系统确认才有效。否则日后在工资结算时可能不被承认。",
+    "relevant_chunks": ["1a5b1c06c0131ef0#chunk-13"],
+    "question_type": "推理型",
+    "difficulty": "中等"
+  }
+]

@@ -1,0 +1,10 @@
+1. ChromaDB 中的 Collection 是用来分组管理向量数据的逻辑容器。
+    - 一个 Collection = 一个向量索引（类似关系型数据库中的一张表）                                                                                                                  
+    - 每个 Collection 存储一批相关的文档向量（如本项目的 knowledge_chunks 存放所有上传文档的分块向量）                                                                              
+    - 支持增删改查、top-k 相似度搜索
+    本项目里 knowledge_chunks Collection 存储的是：上传文档经 OCR/解析后切分的文本块 → 向量化 → 入库。查询时对用户问题向量化，然后在 Collection                                     
+    里做余弦相似度搜索，返回最相似的文本块。
+
+2. PDF中出现表格：当前流程是 extract_text() → 只有返回空时才触发视觉 fallback。而表格页虽然结构丢失，但extract_text() 能提取到文字，所以不会走视觉路径。                                            
+  改进方案：                                                                                                                                                                                                                               
+  在 extract_text() 之后，检测页面是否有表格特征（如：连续多行有规律的 \t 或对齐结构），如果检测到表格，主动调用 LLM 视觉处理来保留表格结构。             

@@ -21,14 +21,15 @@ services:
 
   # ── ChromaDB 向量数据库 ───────────────────────
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:1.4.0
     container_name: agenthub-chromadb
     ports:
       - "8000:8000"
     volumes:
-      - chroma_data:/chroma/chroma
+      - chroma_data:/data
     environment:
       ANONYMIZED_TELEMETRY: "false"
+      IS_PERSISTENT: "TRUE"
 
   # ── Kafka (CDC 消息队列) ──────────────────────
   zookeeper:
@@ -66,9 +67,8 @@ services:
       - kafka
     volumes:
       - ./python:/app
-      - uploads:/app/uploads
+      - ./python/uploads:/app/uploads
 
 volumes:
   neo4j_data:
   chroma_data:
-  uploads:
