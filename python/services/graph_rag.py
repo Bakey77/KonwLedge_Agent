@@ -38,9 +38,24 @@ class GraphRAGContext:
 
 
 ENTITY_LINKING_PROMPT = """\
-从以下问题中提取所有可能的实体名称（人名、组织、技术、产品、概念等）。
-返回 JSON: {"entities": ["实体1", "实体2"]}
-只返回 JSON。
+从以下问题中提取所有实体名称。要求：
+1. 提取问题中出现的**完整短语**，不要拆分
+2. 实体通常是问题中连续出现的词组，如"迟到3次"、"旷工1天"、"经济补偿"
+3. 不要提取单个字词，如"员工"、"迟到"、"工资"
+
+示例：
+问题："员工迟到3次会影响工资吗？"
+期望实体：["员工迟到3次", "扣薪", "旷工1天"]
+
+问题："员工考勤一直有问题，最终影响哪些方面？"
+期望实体：["考勤问题", "绩效", "绩效评估", "考勤异常", "绩效评估不合格", "晋升"]
+
+问题："员工没提前申请加班，能拿加班费吗？"
+期望实体：["未申请加班", "有效加班", "加班费"]
+注意："加班" 不是实体，"未申请加班" 才是完整行为
+
+返回 JSON: {"entities": ["完整实体1", "完整实体2"]}
+只返回 JSON，不要有其他内容。
 """
 
 COMMUNITY_SUMMARY_PROMPT = """\
@@ -74,6 +89,7 @@ class GraphRAGPipeline:
             api_key=settings.openai_api_key,
             base_url=settings.openai_base_url,
             temperature=0,
+            timeout=60,
         )
 
     async def retrieve(self, query: str, top_k: int = 10) -> list[GraphRAGContext]:
@@ -116,14 +132,20 @@ class GraphRAGPipeline:
             SystemMessage(content=ENTITY_LINKING_PROMPT),
             HumanMessage(content=query),
         ]
-        resp = await self.llm.ainvoke(messages)
+        try:
+            resp = await self.llm.ainvoke(messages)
+        except Exception:
+            return []
         try:
             cleaned = resp.content.strip()
             if cleaned.startswith("```"):
                 cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
+            if "\"reasoning_content\"" in cleaned:
+                cleaned = cleaned.split("\"reasoning_content\"")[0] + '"}'
             data = json.loads(cleaned)
-            return data.get("entities", [])
-        except (json.JSONDecodeError, IndexError):
+            entities = data.get("entities", [])
+            return entities if isinstance(entities, list) else []
+        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
             return []
 
     # ── Step 3: 子图检索 ─────────────────────────────────────
@@ -133,12 +155,19 @@ class GraphRAGPipeline:
         for entity_name in entities:
             neighbors = await self.knowledge_graph.get_neighbors(entity_name, hops=hops)
             for record in neighbors:
+                # relation_descs: [[desc1, desc2], [desc3], ...] → flatten → top-2 用 ； 拼接
+                rel_descs_raw = record.get("relation_descs", [])
+                flat_rel = [d for sub in rel_descs_raw for d in sub]  # flatten
+                rel_text = "；".join(flat_rel[:2]) if flat_rel else ""
+                # target_descs: [desc1, desc2, ...] 本身是字符串列表
+                target_descs = record.get("target_descs", [])
+                target_text = "；".join(target_descs[:2]) if target_descs else ""
                 content = (
                     f"{record.get('source', '')} "
-                    f"--[{', '.join(record.get('relations', []))}]--> "
+                    f"--[{rel_text}]--> "
                     f"{record.get('target', '')} "
                     f"({record.get('target_type', '')}): "
-                    f"{record.get('target_desc', '')}"
+                    f"{target_text}"
                 )
                 contexts.append(GraphRAGContext(
                     content=content,

@@ -60,13 +60,13 @@ class KnowledgeGraphService:
         MERGE (e:Entity {name: $name})
         ON CREATE SET
             e.type = $type,
-            e.description = $description,
+            e.descriptions = [$description],
             e.version = $version,
             e.source = $source,
             e.created_at = $now,
             e.updated_at = $now
         ON MATCH SET
-            e.description = CASE WHEN $description <> '' THEN $description ELSE e.description END,
+            e.descriptions = apoc.coll.toSet(coalesce(e.descriptions, []) + [$description]),
             e.version = $version,
             e.updated_at = $now
         """
@@ -81,18 +81,20 @@ class KnowledgeGraphService:
             })
 
     async def add_relation(self, relation: Relation, source: str = "") -> None:
-        """创建实体间关系"""
+        """创建实体间关系，relation.relation 追加到关系 descriptions 列表"""
         rel_type = relation.relation.upper().replace(" ", "_")
         cypher = f"""
         MATCH (h:Entity {{name: $head}})
         MATCH (t:Entity {{name: $tail}})
         MERGE (h)-[r:{rel_type}]->(t)
-        SET r.confidence = $confidence, r.source = $source, r.updated_at = $now
+        SET r.descriptions = apoc.coll.toSet(coalesce(r.descriptions, []) + [$relation_desc]),
+            r.confidence = $confidence, r.source = $source, r.updated_at = $now
         """
         async with self._driver.session() as session:
             await session.run(cypher, {
                 "head": relation.head,
                 "tail": relation.tail,
+                "relation_desc": relation.relation,
                 "confidence": relation.confidence,
                 "source": source,
                 "now": int(time.time()),
@@ -122,10 +124,10 @@ class KnowledgeGraphService:
         MATCH path = (start:Entity {{name: $name}})-[*1..{hops}]-(neighbor)
         RETURN
             start.name AS source,
-            [r IN relationships(path) | type(r)] AS relations,
+            [r IN relationships(path) | r.descriptions] AS relation_descs,
             neighbor.name AS target,
             neighbor.type AS target_type,
-            neighbor.description AS target_desc
+            neighbor.descriptions AS target_descs
         LIMIT 50
         """
         return await self.execute_cypher(cypher, {"name": entity_name})
@@ -134,8 +136,8 @@ class KnowledgeGraphService:
         """模糊搜索实体"""
         cypher = """
         MATCH (e:Entity)
-        WHERE e.name CONTAINS $keyword OR e.description CONTAINS $keyword
-        RETURN e.name AS name, e.type AS type, e.description AS description
+        WHERE e.name CONTAINS $keyword OR ANY(desc IN coalesce(e.descriptions, []) WHERE desc CONTAINS $keyword)
+        RETURN e.name AS name, e.type AS type, e.descriptions AS descriptions
         LIMIT $limit
         """
         return await self.execute_cypher(cypher, {"keyword": keyword, "limit": limit})

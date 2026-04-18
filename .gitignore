@@ -60,6 +60,22 @@ logs/
 # ── Project-specific ──────────────
 comment/
 .claude/
+fix4.12/
+
+# ── Datasets (禁止上传) ───────────
+employee_handbook_qa.json
+chunks_2.md
+chunks_from_chroma.md
+demo.md
+demo_ques.json
+当前问题.txt
+RAG_ANS
+
+# ── Test & Eval (禁止上传) ───────
+python/test/
+python/eval/
+python/scripts/
+python/chat_backend/
 
 # ── Secrets (永远不要提交) ────────
 *.pem

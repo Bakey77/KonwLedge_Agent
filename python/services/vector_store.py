@@ -10,7 +10,16 @@
 from __future__ import annotations
 
 import os
+import httpx
 from typing import Any
+
+# Force HTTP/1.1 to avoid Docker Desktop HTTP/2 502 issue on macOS
+_original_async_init = httpx.AsyncClient.__init__
+def _patched_async_init(self, **kwargs):
+    kwargs["http1"] = True
+    kwargs["http2"] = False
+    _original_async_init(self, **kwargs)
+httpx.AsyncClient.__init__ = _patched_async_init
 
 import dashscope
 from dashscope import TextEmbedding
@@ -113,14 +122,15 @@ class VectorStoreService:
             docs = results.get("documents", [[]])[0]
             metas = results.get("metadatas", [[]])[0]
             dists = results.get("distances", [[]])[0]
-            for doc, meta, dist in zip(docs, metas, dists):
+            ids = results.get("ids", [[]])[0]
+            for doc, meta, dist, cid in zip(docs, metas, dists, ids):
                 score = 1.0 - dist  # cosine distance → similarity
-                out.append(({"content": doc, "source": meta.get("source", ""), "metadata": meta}, score))
+                out.append(({"content": doc, "source": meta.get("source", ""), "metadata": {**meta, "chunk_id": cid}}, score))
             return out
         else:
             results = await self._store.asimilarity_search_with_score(query, k=top_k)
             return [
-                ({"content": doc.page_content, "source": doc.metadata.get("source", ""), "metadata": doc.metadata}, score)
+                ({"content": doc.page_content, "source": doc.metadata.get("source", ""), "metadata": {**doc.metadata, "chunk_id": doc.id}}, score)
                 for doc, score in results
             ]
 
